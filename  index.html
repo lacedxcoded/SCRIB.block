@@ -1,0 +1,1261 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#FFFAF7" />
+  <meta name="description" content="SCRIB.block is a cozy, weird beginner drawing prompt PWA for Procreate-friendly sketch practice." />
+  <title>SCRIB.block — Block Me If You Dare</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <style>
+    :root {
+      color-scheme: light;
+      --color-primary: #FFB299;
+      --color-secondary: #8EAC8E;
+      --color-accent: #FFD97D;
+      --color-background: #FFFAF7;
+      --color-surface: #FFF1EC;
+      --color-text: #2D2422;
+      --color-muted: color-mix(in srgb, var(--color-text) 62%, transparent);
+      --color-line: color-mix(in srgb, var(--color-text) 16%, transparent);
+      --color-surface-strong: color-mix(in srgb, var(--color-surface) 80%, var(--color-background));
+      --shadow-soft: 0 20px 60px color-mix(in srgb, var(--color-text) 10%, transparent);
+      --shadow-card: 0 12px 30px color-mix(in srgb, var(--color-text) 9%, transparent);
+      --radius-xl: 32px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 14px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --font-display: ui-rounded, "Avenir Next", "SF Pro Rounded", system-ui, sans-serif;
+      --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --color-primary: #E9967A;
+      --color-secondary: #4A4E69;
+      --color-accent: #FFB7C5;
+      --color-background: #141115;
+      --color-surface: #252329;
+      --color-text: #F7EDE2;
+      --color-muted: color-mix(in srgb, var(--color-text) 66%, transparent);
+      --color-line: color-mix(in srgb, var(--color-text) 18%, transparent);
+      --color-surface-strong: color-mix(in srgb, var(--color-surface) 82%, #000);
+    }
+
+    [data-theme="random"] {
+      color-scheme: light;
+      --color-primary: #0077B6;
+      --color-secondary: #FFD1DC;
+      --color-accent: #90E0EF;
+      --color-background: #F0F4F8;
+      --color-surface: #D9E2EC;
+      --color-text: #102A43;
+      --color-muted: color-mix(in srgb, var(--color-text) 64%, transparent);
+      --color-line: color-mix(in srgb, var(--color-text) 15%, transparent);
+      --color-surface-strong: color-mix(in srgb, var(--color-surface) 80%, white);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-height: 100%; background: var(--color-background); }
+
+    body {
+      min-height: 100svh;
+      margin: 0;
+      font-family: var(--font-body);
+      color: var(--color-text);
+      background:
+        radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--color-primary) 35%, transparent), transparent 34rem),
+        radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--color-accent) 32%, transparent), transparent 30rem),
+        radial-gradient(circle at 52% 100%, color-mix(in srgb, var(--color-secondary) 24%, transparent), transparent 34rem),
+        linear-gradient(135deg, var(--color-background), color-mix(in srgb, var(--color-background) 82%, var(--color-surface)));
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .34;
+      mix-blend-mode: multiply;
+      background-image:
+        linear-gradient(90deg, color-mix(in srgb, var(--color-text) 5%, transparent) 1px, transparent 1px),
+        linear-gradient(color-mix(in srgb, var(--color-text) 4%, transparent) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: radial-gradient(circle at 50% 20%, black, transparent 74%);
+    }
+
+    .app {
+      width: min(980px, 100%);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: 22px clamp(16px, 4vw, 34px) calc(108px + var(--safe-bottom));
+      position: relative;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 58px;
+      height: 58px;
+      flex: 0 0 auto;
+      border-radius: 18px;
+      filter: drop-shadow(0 8px 18px color-mix(in srgb, var(--color-text) 14%, transparent));
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    .title {
+      font-family: var(--font-display);
+      font-size: clamp(2.1rem, 7vw, 4.4rem);
+      letter-spacing: -0.08em;
+      line-height: .9;
+      text-wrap: balance;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      font-weight: 850;
+      letter-spacing: .02em;
+      color: var(--color-muted);
+    }
+
+    .theme-switch {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 6px;
+      border: 1px solid var(--color-line);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(14px);
+      position: sticky;
+      top: 12px;
+      z-index: 5;
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+    }
+
+    .theme-btn, .nav-btn, .mode-chip, .ghost-btn, .tiny-btn, .primary-btn {
+      border: 0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+    }
+
+    .theme-btn {
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--color-muted);
+      font-size: .85rem;
+      font-weight: 850;
+      letter-spacing: .02em;
+    }
+
+    .theme-btn.active {
+      background: var(--color-text);
+      color: var(--color-background);
+    }
+
+    .section { display: none; animation: rise .34s ease both; }
+    .section.active { display: block; }
+
+    @keyframes rise {
+      from { transform: translateY(10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .intro-card, .prompt-card, .note-card, .stash-card, .panel {
+      border: 1px solid var(--color-line);
+      background:
+        linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 94%, white), var(--color-surface-strong)),
+        var(--color-surface);
+      box-shadow: var(--shadow-card);
+      border-radius: var(--radius-xl);
+      position: relative;
+      overflow: hidden;
+    }
+
+    [data-theme="dark"] .intro-card,
+    [data-theme="dark"] .prompt-card,
+    [data-theme="dark"] .note-card,
+    [data-theme="dark"] .stash-card,
+    [data-theme="dark"] .panel {
+      background:
+        linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 92%, white 4%), var(--color-surface-strong)),
+        var(--color-surface);
+    }
+
+    .intro-card::after, .prompt-card::after, .note-card::after, .stash-card::after, .panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(color-mix(in srgb, var(--color-text) 10%, transparent) .8px, transparent .8px);
+      background-size: 18px 18px;
+      opacity: .16;
+      mix-blend-mode: multiply;
+    }
+
+    .intro-card {
+      padding: clamp(24px, 4vw, 38px);
+      margin: 18px 0 18px;
+      min-height: 248px;
+      display: grid;
+      align-content: center;
+      gap: 16px;
+    }
+
+    .intro-card .stamp {
+      width: fit-content;
+      padding: 7px 10px;
+      border: 1px dashed color-mix(in srgb, var(--color-text) 36%, transparent);
+      border-radius: 999px;
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--color-muted);
+      transform: rotate(-1deg);
+    }
+
+    .intro-copy {
+      font-size: clamp(1.25rem, 3vw, 1.9rem);
+      font-family: var(--font-display);
+      font-weight: 850;
+      letter-spacing: -.04em;
+      line-height: 1.05;
+      max-width: 720px;
+    }
+
+    .small-copy {
+      color: var(--color-muted);
+      line-height: 1.6;
+      max-width: 66ch;
+      font-weight: 650;
+    }
+
+    .mode-bar {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 8px 2px 14px;
+      scrollbar-width: none;
+      scroll-snap-type: x proximity;
+      margin: 8px -2px 2px;
+    }
+
+    .mode-bar::-webkit-scrollbar { display: none; }
+
+    .mode-chip {
+      scroll-snap-align: start;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      padding: 12px 16px;
+      border: 1px solid var(--color-line);
+      background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+      color: var(--color-muted);
+      font-weight: 900;
+      box-shadow: 0 8px 18px color-mix(in srgb, var(--color-text) 7%, transparent);
+    }
+
+    .mode-chip.active {
+      color: var(--color-text);
+      border-color: color-mix(in srgb, var(--color-primary) 60%, var(--color-line));
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 48%, var(--color-surface)), color-mix(in srgb, var(--color-accent) 28%, var(--color-surface)));
+    }
+
+    .prompt-card {
+      padding: clamp(20px, 4vw, 32px);
+      min-height: 390px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .prompt-head {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      width: fit-content;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color-secondary) 22%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-secondary) 42%, transparent);
+      font-weight: 850;
+      color: var(--color-muted);
+      font-size: .82rem;
+    }
+
+    .prompt-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.7rem, 5.5vw, 3.2rem);
+      letter-spacing: -.06em;
+      line-height: .95;
+      margin-top: 10px;
+      text-wrap: balance;
+    }
+
+    .prompt-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .mini-block {
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-lg);
+      padding: 15px;
+      background: color-mix(in srgb, var(--color-background) 72%, transparent);
+      min-height: 118px;
+    }
+
+    .label {
+      display: block;
+      font-size: .75rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      font-weight: 950;
+      color: color-mix(in srgb, var(--color-primary) 80%, var(--color-text));
+      margin-bottom: 9px;
+    }
+
+    .mini-block p, .steps li, .detail-card p, .note-card p, .stash-card p {
+      line-height: 1.5;
+      color: var(--color-muted);
+      font-weight: 650;
+    }
+
+    .steps { margin: 0; padding-left: 1.1rem; }
+    .steps li { margin: 6px 0; }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .primary-btn {
+      width: fit-content;
+      justify-self: center;
+      margin: 8px auto 0;
+      padding: 16px 22px;
+      min-width: min(280px, 100%);
+      border-radius: 22px;
+      background: linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-accent) 80%, var(--color-primary)));
+      color: var(--color-text);
+      font-family: var(--font-display);
+      font-weight: 950;
+      font-size: 1.05rem;
+      letter-spacing: -.02em;
+      border: 2px solid color-mix(in srgb, var(--color-text) 14%, transparent);
+      box-shadow: 0 18px 34px color-mix(in srgb, var(--color-primary) 32%, transparent);
+    }
+
+    .ghost-btn, .tiny-btn {
+      border-radius: 999px;
+      border: 1px solid var(--color-line);
+      background: color-mix(in srgb, var(--color-surface) 74%, transparent);
+      color: var(--color-text);
+      font-weight: 900;
+    }
+
+    .ghost-btn { padding: 12px 15px; }
+    .tiny-btn { padding: 9px 12px; font-size: .88rem; }
+
+    .ghost-btn.danger, .tiny-btn.danger {
+      color: color-mix(in srgb, #b91c1c 80%, var(--color-text));
+    }
+
+    .primary-btn:active, .ghost-btn:active, .tiny-btn:active, .mode-chip:active, .nav-btn:active { transform: scale(.97); }
+
+    .details {
+      display: none;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .details.open { display: grid; }
+
+    .detail-card {
+      padding: 14px;
+      border-radius: var(--radius-lg);
+      background: color-mix(in srgb, var(--color-accent) 16%, var(--color-background));
+      border: 1px dashed color-mix(in srgb, var(--color-text) 18%, transparent);
+    }
+
+    .toast {
+      min-height: 24px;
+      margin: 6px 0 0;
+      text-align: center;
+      color: var(--color-muted);
+      font-weight: 850;
+    }
+
+    .page-title {
+      margin: 18px 0 12px;
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 6vw, 3.4rem);
+      line-height: .95;
+      letter-spacing: -.06em;
+    }
+
+    .page-kicker {
+      color: var(--color-muted);
+      font-weight: 750;
+      line-height: 1.6;
+      max-width: 66ch;
+      margin-bottom: 18px;
+    }
+
+    .notes-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .note-card {
+      padding: 18px;
+      min-height: 190px;
+    }
+
+    .note-icon {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 15px;
+      margin-bottom: 14px;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 54%, var(--color-surface)), color-mix(in srgb, var(--color-accent) 38%, var(--color-surface)));
+      border: 1px solid var(--color-line);
+      font-size: 1.2rem;
+      transform: rotate(-2deg);
+    }
+
+    .note-card h3, .stash-card h3 {
+      font-family: var(--font-display);
+      letter-spacing: -.04em;
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+    }
+
+    .stash-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .stash-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .stash-card {
+      padding: 18px;
+    }
+
+    .stash-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0 12px;
+    }
+
+    .pill {
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color-primary) 17%, var(--color-background));
+      border: 1px solid var(--color-line);
+      color: var(--color-muted);
+      font-size: .78rem;
+      font-weight: 900;
+    }
+
+    .empty {
+      padding: 28px;
+      text-align: center;
+      border: 1px dashed color-mix(in srgb, var(--color-text) 24%, transparent);
+      border-radius: var(--radius-xl);
+      color: var(--color-muted);
+      font-weight: 750;
+      background: color-mix(in srgb, var(--color-surface) 54%, transparent);
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      bottom: calc(14px + var(--safe-bottom));
+      transform: translateX(-50%);
+      width: min(560px, calc(100% - 28px));
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 8px;
+      z-index: 20;
+      border: 1px solid var(--color-line);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(18px);
+    }
+
+    .nav-btn {
+      border-radius: 999px;
+      padding: 13px 12px;
+      background: transparent;
+      color: var(--color-muted);
+      font-weight: 950;
+    }
+
+    .nav-btn.active {
+      background: var(--color-text);
+      color: var(--color-background);
+    }
+
+    .install-hint {
+      margin: 16px 0 0;
+      text-align: center;
+      color: var(--color-muted);
+      font-size: .86rem;
+      font-weight: 700;
+    }
+
+    @media (max-width: 720px) {
+      .topbar { grid-template-columns: 1fr; }
+      .theme-switch { width: fit-content; position: static; }
+      .prompt-grid, .details, .notes-grid { grid-template-columns: 1fr; }
+      .prompt-head { display: block; }
+      .prompt-card { min-height: 0; }
+      .brand-mark { width: 52px; height: 52px; }
+    }
+
+    @media (min-width: 900px) {
+      .app { padding-top: 34px; }
+      .prompt-card { padding: 36px; }
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <main class="app" id="app">
+    <header class="topbar" aria-label="SCRIB.block header">
+      <div class="brand">
+        <img class="brand-mark" src="icons/ICON-192x192.png" alt="SCRIB.block icon" />
+        <div>
+          <h1 class="title">SCRIB.block</h1>
+          <p class="subtitle">Block Me If You Dare</p>
+        </div>
+      </div>
+      <div class="theme-switch" aria-label="Theme switcher">
+        <button class="theme-btn active" data-theme-choice="light" type="button">Light</button>
+        <button class="theme-btn" data-theme-choice="random" type="button">Random</button>
+        <button class="theme-btn" data-theme-choice="dark" type="button">Dark</button>
+      </div>
+    </header>
+
+    <section class="section active" id="play" aria-label="Play section">
+      <nav class="mode-bar" aria-label="Prompt modes"></nav>
+
+      <article class="intro-card" id="welcomeCard">
+        <span class="stamp">beginner-safe chaos</span>
+        <p class="intro-copy">Choose a block. Press the button. Draw the weird thing badly first.</p>
+        <p class="small-copy">SCRIB.block gives you tiny drawing missions for Procreate, paper, or any sketch app. The lesson hides inside the play like a polite gremlin in a cardigan.</p>
+      </article>
+
+      <article class="prompt-card" id="promptCard" hidden>
+        <div class="prompt-head">
+          <div>
+            <span class="tag" id="promptMode">Soft Block</span>
+            <h2 class="prompt-title" id="promptTitle">Prompt Title</h2>
+          </div>
+          <span class="tag" id="promptMood">Mood</span>
+        </div>
+
+        <div class="prompt-grid">
+          <div class="mini-block">
+            <span class="label">Draw</span>
+            <p id="promptText"></p>
+          </div>
+          <div class="mini-block">
+            <span class="label">Shapes</span>
+            <p id="promptShapes"></p>
+          </div>
+          <div class="mini-block">
+            <span class="label">Try</span>
+            <ol class="steps" id="promptSteps"></ol>
+          </div>
+        </div>
+
+        <div class="details" id="detailsPanel">
+          <div class="detail-card">
+            <span class="label">Tiny Lesson</span>
+            <p id="promptLesson"></p>
+          </div>
+          <div class="detail-card">
+            <span class="label">Procreate Layers</span>
+            <p id="promptProcreate"></p>
+          </div>
+          <div class="detail-card">
+            <span class="label">Twist</span>
+            <p id="promptTwist"></p>
+          </div>
+          <div class="detail-card">
+            <span class="label">Reflect</span>
+            <p id="promptReflect"></p>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button class="ghost-btn" id="savePromptBtn" type="button">Scribble On</button>
+          <button class="ghost-btn" id="breakdownBtn" type="button">Break Down Block</button>
+          <button class="ghost-btn" id="doneBtn" type="button">StrokeDone</button>
+        </div>
+      </article>
+
+      <button class="primary-btn" id="generateBtn" type="button">Scribble the Block</button>
+      <p class="toast" id="toast" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="section" id="blocks" aria-label="Blocks notes section">
+      <h2 class="page-title">Blocks</h2>
+      <p class="page-kicker">Tiny field notes for beginner hands. No homework stink. Just the useful bones.</p>
+      <div class="notes-grid" id="notesGrid"></div>
+    </section>
+
+    <section class="section" id="stash" aria-label="Saved stash section">
+      <h2 class="page-title">Stash</h2>
+      <p class="page-kicker">Saved prompt relics live here. Mark them drawn, Re-Scribble them, or toss them into the tiny digital bin.</p>
+      <div class="stash-tools">
+        <button class="tiny-btn" id="clearDrawnBtn" type="button">Clear Drawn</button>
+        <button class="tiny-btn danger" id="clearAllBtn" type="button">Empty Stash</button>
+      </div>
+      <div class="stash-list" id="stashList"></div>
+    </section>
+
+    <p class="install-hint">Installable. Offline-ready. Static. The little notebook runs without drama.</p>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Primary navigation">
+    <button class="nav-btn active" data-section="play" type="button">Play</button>
+    <button class="nav-btn" data-section="blocks" type="button">Blocks</button>
+    <button class="nav-btn" data-section="stash" type="button">Stash</button>
+  </nav>
+
+  <script type="module">
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+
+    const STORAGE_KEY = "scribblock.relics.v1";
+    const THEME_KEY = "scribblock.theme.v1";
+
+    const modes = [
+      { id: "soft", name: "Soft Block", icon: "◻", focus: "warm-up" },
+      { id: "shape", name: "Shape Rite", icon: "△", focus: "shape practice" },
+      { id: "object", name: "Object Curse", icon: "☕", focus: "object character" },
+      { id: "snack", name: "Snack Spirit", icon: "🍓", focus: "food character" },
+      { id: "blob", name: "Blob Chapel", icon: "☁", focus: "blob personality" },
+      { id: "letter", name: "Letterling", icon: "g", focus: "letter play" }
+    ];
+
+    const fieldNotes = [
+      ["Start With Big Shapes", "Draw the largest form first. Tiny details behave better when the body exists.", "⬛"],
+      ["Details Come Last", "Details are sprinkles. Structure is the cupcake. Frost later, goblin now.", "✦"],
+      ["Use 3 Procreate Layers", "Layer 1: messy sketch. Layer 2: clean shapes. Layer 3: details, texture, tiny chaos.", "☰"],
+      ["Make Silhouettes Readable", "If the outside shape reads, the character already has bones.", "◒"],
+      ["Bad First Sketches Are Required", "The first sketch is clay. Let it be lumpy. Lumpy means alive.", "✎"],
+      ["Use Contrast", "Mix big/small, soft/sharp, tall/tiny. Contrast gives drawings their little electric spine.", "↕"],
+    ];
+
+    const subjectTypes = [
+      "Object character", "Abstract blob", "Food character", "Lettering / glyph design", "Creature", "Tiny humanoid", "Animal", "Plant / mushroom", "Robot / machine", "Magical item",
+      "Mini spirit", "Pocket deity", "Lost mascot"
+    ];
+
+    const objectSubjects = [
+      "teacup", "spoon", "fork", "lamp", "chair", "book", "eraser", "pencil", "pencil sharpener", "backpack", "button", "key", "candle", "mug", "clock", "shoe", "sock", "envelope", "mailbox", "stapler", "scissors", "paintbrush", "crayon", "marker", "notebook", "jar", "bottle", "mirror", "comb", "toothbrush", "umbrella", "phone", "remote", "tiny table", "watering can", "door", "window", "blanket", "pillow", "basket", "tape roll",
+      "paperclip", "binder", "ruler", "glue bottle", "sticky note", "chalk", "light switch", "doorknob", "broom", "dustpan", "trash can", "fan", "headphones", "USB stick", "charger brick", "coin", "wallet", "keychain", "measuring cup", "apron"
+    ];
+
+    const foodSubjects = [
+      "strawberry knight", "toast wizard", "cupcake ghost", "pear goblin", "noodle dragon", "soup spirit", "jellybean explorer", "mushroom snackling",
+      "apple sprite", "cookie guardian", "pancake mascot", "waffle oracle", "croissant goblin", "donut ghost", "lemon messenger", "orange slice spirit", "carrot knight", "potato wizard", "tomato gremlin", "cheese cube familiar", "marshmallow monster", "pickle trickster", "peach fairy", "pumpkin keeper", "egg sidekick", "cinnamon roll beast", "tea bag ghost", "candy wrapper sprite", "tiny sandwich hero",
+      "grapes", "banana slice", "avocado half", "rice ball", "sushi roll", "pretzel", "macaron", "popsicle", "ice cream scoop", "berry tart", "onigiri", "bagel", "scone", "choco bar", "peapod", "corn cob", "broccoli floret", "berry cluster", "milk carton", "hot cocoa"
+    ];
+
+    const blobSubjects = [
+      "blob with opinions", "blob pretending to be royal", "blob hiding a secret", "blob that wants to be a logo", "blob with excellent posture", "blob made of tired thunder",
+      "blob that wants applause", "blob shaped like a question", "blob that keeps dropping things", "blob that thinks it's a wizard", "blob made of leftover dreams", "blob that refuses to sit correctly", "blob with a suspicious glow", "blob that collects crumbs", "blob shaped like a cloud of doubt", "blob that wants to be aerodynamic", "blob that thinks it's a rectangle", "blob that hoards pencils", "blob with a dramatic scarf", "blob that whispers advice", "blob shaped like a tiny mountain", "blob that is too shiny", "blob that wants a promotion", "blob that thinks it's haunted", "blob with a single important hair", "blob that is late for something"
+    ];
+
+    const letteringSubjects = [
+      "lowercase g", "chunky S", "word BLOOM", "word BLOCK", "letter A", "letter M", "tiny ampersand", "word WOBBLE",
+      "single letter", "lowercase letter", "uppercase letter", "short word", "chunky word", "sticker-style word", "bubble-letter word", "soft serif word", "block-letter word", "wobbly handwritten word", "glyph creature", "letter mascot", "word logo", "decorative initial", "tiny alphabet charm", "nameplate", "label design", "title card", "fake brand word", "magic spell word",
+      "glyph swarm", "word creature", "mini sigil", "charm letter", "folded word", "sticker rune", "soft block word", "wiggly serif", "chunky glyph", "tiny spell tag",
+      "word BLIP", "word MELT", "word PLINK", "word SLOOP", "word TWIG", "word HUSH", "word BINK", "word GLOOM", "word SPILL", "word MURMUR", "word TILT", "word FLOOF", "word SKIP", "word BLUR", "word FRET", "word GLOOPLET", "word MOSS", "word TANGLE", "word SQUEAK", "word BRINK", "word NIB", "word SPROUT", "word FABLE", "word ZING", "word MUTTER"
+    ];
+
+    const pools = {
+      soft: {
+        subjects: ["sleepy cup", "tiny lamp", "soft sock creature", "little chair friend", "warm button bug", "small cloud pet", "quiet pencil buddy", "mini spirit", "pocket deity", "lost mascot"],
+        templates: ["Draw a {mood} {subject} using {shapes}.", "Turn a simple {subject} into a beginner-friendly character with {shapes}."]
+      },
+      shape: {
+        subjects: ["shape guardian", "tiny mascot", "pocket monster", "friendly robot", "storybook bug", "little window creature", "blocky forest sprite", "mini spirit", "pocket deity", "lost mascot"],
+        templates: ["Build a {mood} {subject} from {shapes}.", "Use {shapes} to design a readable {subject} with one clear personality detail."]
+      },
+      object: {
+        subjects: objectSubjects,
+        templates: ["Turn a {subject} into a {mood} character using {shapes}.", "Curse a normal {subject} into a tiny character with {shapes}."]
+      },
+      snack: {
+        subjects: foodSubjects,
+        templates: ["Draw a {mood} {subject} using {shapes}.", "Make a {subject} look {mood} with one oversized feature and {shapes}."]
+      },
+      blob: {
+        subjects: blobSubjects,
+        templates: ["Draw a {mood} {subject} using {shapes}.", "Shape a {subject}; make the silhouette do most of the talking."]
+      },
+      letter: {
+        subjects: letteringSubjects,
+        templates: ["Turn {subject} into a {mood} character using {shapes}.", "Letter the {subject} as if it learned to walk; use {shapes} and one playful detail."]
+      }
+    };
+
+    const roles = [
+      "knight", "ghost", "wizard", "goblin", "guardian", "oracle", "mascot", "villain", "sidekick", "spirit", "tiny hero", "lost friend", "pocket deity"
+    ];
+
+    const titlePatterns = [
+      "{mood} {subject}", "{subject} with a secret shape", "{food} spirit", "{shape}-built {role}", "{subject} trying its best", "{food} in trouble", "{letter} summons a creature", "{object} with a job", "{subject} wearing the wrong thing", "{shape} {food} mascot", "{role} from the {mood} dimension", "{object} that knows too much", "{food} with feelings", "{letter} with opinions", "{subject} who refuses to cooperate", "{mood} {shape} friend", "{role} wearing a prop wrong", "{food} from the pocket kingdom", "{object} with a suspicious glow", "{subject} who forgot its job", "{shape}-powered {letter}", "{mood} {object} adventure", "{role} with one important detail", "{subject} from the lost drawer"
+    ];
+
+    const moods = [
+      ["sleepy", "droopy shapes and soft corners"],
+      ["shy", "small face, tucked limbs, lots of breathing room"],
+      ["curious", "tilted pose and one lifted detail"],
+      ["suspicious", "side-eye, compressed body, one guarded prop"],
+      ["dramatic", "big silhouette, tiny logic, theatrical pose"],
+      ["offended", "stiff posture and a very serious little mouth"],
+      ["lonely", "extra negative space and one small companion detail"],
+      ["brave", "wide stance, chest forward, one heroic shape"],
+      ["nervous", "uneven spacing, tiny limbs, anxious lines"],
+      ["haunted", "hollow eyes, floating detail, strange softness"],
+      ["glitchy", "broken shapes, offset lines, repeated marks"],
+      ["ancient", "cracks, asymmetry, worn edges"],
+      ["gentle", "rounded edges, open space, warm expression"],
+      ["warm", "cozy props, soft glow, friendly shapes"],
+      ["feral", "sharp motion, wild tiny marks, restless silhouette"],
+      ["frantic", "repeated marks, scattered props, wild tiny lines"],
+      ["overconfident", "oversized feature and tiny support shapes"],
+      ["confused", "tilted head, uneven eyes, questioning posture"],
+      ["proud", "tall stance, lifted chin, bold simple shape"],
+      ["tiny but furious", "small body, sharp brows, compressed gesture"],
+      ["melancholy", "drooping silhouette, quiet spacing, soft edges"],
+      ["magical", "floating details, glow marks, impossible little symbol"],
+      ["awkward", "uneven limbs, stiff pose, charming imbalance"],
+      ["secretive", "hidden prop, tucked pose, suspicious glance"],
+      ["dreamy", "floating shapes, soft curves, cloudy spacing"],
+      ["grumpy", "heavy brow, squat shape, stubborn little mouth"],
+      ["hopeful", "lifted pose, open shape, small bright accent"],
+      ["unbothered", "relaxed posture, simple face, calm negative space"],
+      ["startled", "wide eyes, popped pose, scattered tiny marks"],
+      ["tender", "soft contact, rounded edges, gentle tilt"],
+      ["sneaky", "sideways lean, tiny feet, hidden detail"],
+      ["cosmic", "stars, arcs, floating dots, weird orbiting pieces"],
+      ["embarrassed", "small posture, blush mark, hiding gesture"],
+      ["dizzy", "spiral marks, tilted body, wobble lines"],
+      ["peaceful", "open space, slow curves, simple relaxed pose"],
+      ["chaotic", "clashing shapes, scattered props, energetic line rhythm"],
+      ["too serious", "stiff posture, formal prop, tiny ridiculous detail"],
+      ["quietly powerful", "simple silhouette, grounded stance, minimal detail"],
+      ["fake confident", "big pose, nervous tiny face, overdone accessory"],
+      ["softly cursed", "gentle edges with one ominous little symbol"],
+      ["excited", "lifted limbs, sparkle marks, forward motion"],
+      ["suspiciously polite", "formal pose, side-eye, tiny bow"],
+      ["dramatically tired", "heavy eyelids, collapsed shape, theatrical slump"]
+    ];
+
+    const shapeCombos = [
+      "round body + tiny triangle detail + one oversized prop",
+      "chunky square + soft corners + small floating marks",
+      "long bendy shape + tiny dots + one heavy shadow",
+      "boxy base + lopsided circle + sharp little feet",
+      "two circles + one rectangle + one dramatic triangle",
+      "soft blob + tiny spikes + big/simple face",
+      "wide oval + skinny legs + one wobbly accessory",
+      "stacked blocks + curved top + tiny expression marks",
+      "fat triangle + little circles + one impossible hat",
+      "thin rectangle + puffy shape + a single bold curve",
+      "round + jagged",
+      "soft + hollow",
+      "tall + droopy",
+      "wide + spindly",
+      "chunky + cracked",
+      "smooth + dented",
+      "angular + plush",
+      "flat + frilled",
+      "tiny + stretched",
+      "boxy + melty",
+      "round + hollow center",
+      "soft + ridged",
+      "tall + top-heavy",
+      "short + spindly",
+      "wide + droopy",
+      "lumpy + elegant",
+      "smooth + chaotic",
+      "tiny + dramatic silhouette",
+      "round + fractured",
+      "soft + geometric accent"
+    ];
+
+    const lessons = [
+      "Start with the biggest shape first. Details are decorations, not the skeleton.",
+      "Make the silhouette readable before you add face details. The outside shape does the heavy lifting.",
+      "Use contrast: one big thing, one tiny thing, one odd thing. That combo wakes a drawing up.",
+      "Repeat a shape at least three times. Repetition makes the design feel intentional instead of accidental.",
+      "Exaggerate the mood with posture first, face second. Bodies speak before mouths do.",
+      "Keep the first sketch ugly and fast. A messy sketch is a map, not a verdict.",
+      "Draw from big to small. Block the silhouette before anything else.",
+      "Use simple shapes first: circles, blobs, rectangles. Fancy waits outside.",
+      "Limit your tools: one brush, one eraser, one goal.",
+      "Practice confident strokes. Draw through; don't scratch at the page like it owes you money.",
+      "Use references loosely. Steal shapes, not details.",
+      "Check the silhouette. Flip canvas, squint, simplify.",
+      "Think in layers of purpose: sketch → structure → charm.",
+      "Use fewer lines. Clarity beats detail with a tiny velvet hammer.",
+      "Repeat shapes intentionally. Rhythm creates style.",
+      "Stop before perfect. Beginners overwork; quit early and let it breathe."
+    ];
+
+    const twistTypes = [
+      "add a prop", "change the mood", "add a world detail", "change the body", "add texture", "add story tension", "make it smaller", "make it older", "make it braver", "make it suspicious",
+      "add a tiny companion", "change the material", "add a pattern", "make it float", "give it a job", "make it glow", "add a mini environment", "give it a weakness", "give it a hobby", "make it reversible", "add a weather effect", "make it seasonal", "give it a disguise", "add a magical glitch", "make it transparent", "give it a rival", "add a dramatic pose", "make it too shiny", "give it a strange rule", "add a tiny prophecy"
+    ];
+
+    const twists = [
+      "Add a cracked crown that is clearly too important to the character.",
+      "Make one body part hilariously oversized.",
+      "Place it in a tiny moonlit classroom.",
+      "Give it a prop it absolutely does not know how to use.",
+      "Make it braver, sleepier, or more suspicious with only posture.",
+      "Add crumbs, cracks, fuzz, or a little glowing edge.",
+      "Give it tiny boots. No explanation. Tiny boots know what they did.",
+      "Make the shadow have more personality than the character.",
+      "Give it a mismatched accessory.",
+      "Make it balance something precarious.",
+      "Add a floating scribble cloud.",
+      "Give it a tiny lantern.",
+      "Make it slightly melted.",
+      "Add a pocket universe.",
+      "Give it a dramatic shadow shape.",
+      "Make it wear borrowed clothes.",
+      "Add a floating exclamation mark.",
+      "Give it a tiny scroll.",
+      "Make it look freshly summoned.",
+      "Add a tiny stitched patch.",
+      "Give it a mismatched eye.",
+      "Add a tiny spark creature.",
+      "Make it look like it's mid-transformation."
+    ];
+
+    const procreateSetups = [
+      "Layer 1: messy sketch. Layer 2: clean shape outline. Layer 3: face, texture, tiny chaos.",
+      "Blob sketch / clean shapes / details.",
+      "Gesture sketch / chunky base / decoration.",
+      "Word skeleton / thick letters / shadow + sparkle.",
+      "Object outline / character parts / texture.",
+      "Loose shape / refined silhouette / final weird detail.",
+      "Big form / props / texture marks.",
+      "Letter skeleton / filled lettering / highlights.",
+      "Rough block-in / clean line / color wash.",
+      "Base color / shadow / doodle accents.",
+      "Sketch map / ink pass / tiny sparkle crime.",
+      "Blob base / ink pass / sparkles.",
+      "Shape cloud / carve lines / micro-texture.",
+      "Loose scribble / chunky fill / tiny face.",
+      "Word blob / outline pass / sticker edge.",
+      "Gesture mess / silhouette lock-in / prop layer.",
+      "Soft base / hard accents / glow pass.",
+      "Big shape / shadow chunk / highlight dots.",
+      "Letter skeleton / wobble pass / texture grain.",
+      "Object block-in / character face / chaos layer.",
+      "Flat color / shading / personality marks."
+    ];
+
+    const reflections = [
+      "What shape did you use most?",
+      "What made the character feel alive?",
+      "What would you exaggerate if you Re-Scribbled it?",
+      "Which part has the most goblin energy?",
+      "What detail could disappear and still keep the idea clear?",
+      "Did the pose or the face do more storytelling?",
+      "What line felt the most fun?",
+      "Where did you hesitate?",
+      "What shape repeated accidentally?",
+      "What part feels too serious?",
+      "What would you redraw bigger?",
+      "What part feels like a new habit forming?",
+      "Where did your style peek out?",
+      "What detail is unnecessary but delightful?",
+      "What part feels like a future signature?",
+      "What mistake improved the drawing?"
+    ];
+
+    const praise = [
+      "StrokeDone. The blank page has been bonked.",
+      "Drawn. Messy counts. Existing counts more.",
+      "You made the thing. The thing now has rent-free brain space.",
+      "The notebook goblin saw it and gave one respectful nod.",
+      "Good. The first sketch survived contact with reality."
+    ];
+
+    const saveMessages = [
+      "Relic tucked into the Stash.",
+      "Saved. The notebook goblin nodded.",
+      "Kept safely. Future-you may thank present-you.",
+      "Prompt pocketed. Tiny victory noise.",
+    ];
+
+    let activeMode = modes[0];
+    let currentPrompt = null;
+    let relics = readRelics();
+
+    function pick(array) { return array[Math.floor(Math.random() * array.length)]; }
+    function today() { return new Date().toISOString(); }
+    function formatDate(value) {
+      return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+    }
+    function titleCase(text) {
+      return text.replace(/\b\w/g, char => char.toUpperCase()).replace(/\bAnd\b/g, "and");
+    }
+
+    function readRelics() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? []; }
+      catch { return []; }
+    }
+
+    function writeRelics() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(relics));
+      renderStash();
+    }
+
+    function makePrompt(mode = activeMode) {
+      const modePool = pools[mode.id];
+      const subject = pick(modePool.subjects);
+      const [mood, cue] = pick(moods);
+      const shapes = pick(shapeCombos);
+      const template = pick(modePool.templates);
+      const prompt = template.replace("{subject}", subject).replace("{mood}", mood).replace("{shapes}", shapes);
+      const title = makeTitle({ mode, subject, mood, shapes });
+
+      return {
+        id: crypto.randomUUID(),
+        title,
+        mode: mode.name,
+        modeId: mode.id,
+        subject,
+        subjectType: inferSubjectType(mode.id),
+        mood,
+        cue,
+        prompt,
+        shapes,
+        steps: buildSteps(mode, subject, mood),
+        lesson: pick(lessons),
+        procreate: buildProcreate(mode),
+        twistType: pick(twistTypes),
+        twist: pick(twists),
+        reflection: pick(reflections),
+        date: today(),
+        status: "fresh"
+      };
+    }
+
+    function inferSubjectType(modeId) {
+      return ({ object: "Object character", snack: "Food character", blob: "Abstract blob", letter: "Lettering / glyph design", soft: "Creature", shape: "Creature" }[modeId]) || pick(subjectTypes);
+    }
+
+    function makeTitle({ mode, subject, mood, shapes }) {
+      const cleanSubject = subject.replace(/^word\s+/i, "").replace(/^letter\s+/i, "letter ");
+      const pattern = pick(titlePatterns);
+      const object = pick(objectSubjects);
+      const food = pick(foodSubjects).replace(/\s+(knight|wizard|ghost|goblin|dragon|spirit|explorer|snackling|sprite|guardian|mascot|oracle|trickster|fairy|keeper|sidekick|beast|hero)$/i, "");
+      const letter = pick(letteringSubjects).replace(/^word\s+/i, "");
+      const shape = shapes.split("+")[0].trim().replace(/\s*(body|base)$/i, "") || "shape";
+      const raw = pattern
+        .replaceAll("{mood}", mood)
+        .replaceAll("{subject}", cleanSubject)
+        .replaceAll("{shape}", shape)
+        .replaceAll("{role}", pick(roles))
+        .replaceAll("{food}", food)
+        .replaceAll("{letter}", letter)
+        .replaceAll("{object}", object);
+      return titleCase(raw);
+    }
+
+    function buildSteps(mode, subject, mood) {
+      if (mode.id === "letter") {
+        return [
+          "Sketch the letter or word as one big simple shape.",
+          "Add eyes, limbs, or a tiny prop without hiding readability.",
+          `Push the ${mood} feeling through posture, spacing, or one bold detail.`
+        ];
+      }
+      return [
+        "Block in the biggest shape first.",
+        "Add two smaller shapes to create personality.",
+        `Use the face, pose, or prop to make it feel ${mood}.`
+      ];
+    }
+
+    function buildProcreate(mode) {
+      if (mode.id === "letter") return pick(procreateSetups.filter(setup => /word|letter|glyph|sticker/i.test(setup)));
+      if (mode.id === "object") return pick(procreateSetups.filter(setup => /object|base|outline|shape|sketch/i.test(setup)));
+      if (mode.id === "blob") return pick(procreateSetups.filter(setup => /blob|shape|scribble|base/i.test(setup)));
+      return pick(procreateSetups);
+    }
+
+    function renderModes() {
+      const bar = $(".mode-bar");
+      bar.innerHTML = modes.map(mode => `
+        <button class="mode-chip ${mode.id === activeMode.id ? "active" : ""}" data-mode="${mode.id}" type="button">
+          ${mode.icon} ${mode.name}
+        </button>
+      `).join("");
+    }
+
+    function renderPrompt(prompt) {
+      currentPrompt = prompt;
+      $("#welcomeCard").hidden = true;
+      $("#promptCard").hidden = false;
+      $("#detailsPanel").classList.remove("open");
+      $("#breakdownBtn").textContent = "Break Down Block";
+      $("#promptMode").textContent = prompt.mode;
+      $("#promptMood").textContent = prompt.mood;
+      $("#promptTitle").textContent = prompt.title;
+      $("#promptText").textContent = prompt.prompt;
+      $("#promptShapes").textContent = `${prompt.shapes}. Mood cue: ${prompt.cue}.`;
+      $("#promptSteps").innerHTML = prompt.steps.map(step => `<li>${step}</li>`).join("");
+      $("#promptLesson").textContent = prompt.lesson;
+      $("#promptProcreate").textContent = prompt.procreate;
+      $("#promptTwist").textContent = prompt.twist;
+      $("#promptReflect").textContent = prompt.reflection;
+      toast("");
+    }
+
+    function toast(message) {
+      $("#toast").textContent = message;
+      if (message) window.setTimeout(() => { if ($("#toast").textContent === message) $("#toast").textContent = ""; }, 3200);
+    }
+
+    function saveCurrent(silent = false) {
+      if (!currentPrompt) return null;
+      const existing = relics.find(relic => relic.sourceId === currentPrompt.id || relic.title === currentPrompt.title && relic.prompt === currentPrompt.prompt);
+      if (existing) {
+        if (!silent) toast("Already stashed. The goblin remembers.");
+        return existing;
+      }
+      const relic = {
+        ...currentPrompt,
+        sourceId: currentPrompt.id,
+        id: crypto.randomUUID(),
+        savedAt: today(),
+        status: "Saved",
+        drawn: false,
+        rescribbled: false
+      };
+      relics.unshift(relic);
+      writeRelics();
+      if (!silent) toast(pick(saveMessages));
+      return relic;
+    }
+
+    function markDrawn(id) {
+      const relic = relics.find(item => item.id === id);
+      if (!relic) return;
+      relic.drawn = true;
+      relic.status = relic.rescribbled ? "Re-Scribbled + Drawn" : "Drawn";
+      writeRelics();
+      toast(pick(praise));
+    }
+
+    function strokeDoneCurrent() {
+      const relic = saveCurrent(true);
+      if (!relic) return;
+      markDrawn(relic.id);
+    }
+
+    function reScribble(id) {
+      const relic = relics.find(item => item.id === id);
+      if (!relic) return;
+      const evolved = {
+        ...relic,
+        id: crypto.randomUUID(),
+        sourceId: crypto.randomUUID(),
+        title: `Re-Scribble: ${relic.title}`,
+        prompt: `Redraw ${relic.title} with this mutation: ${pick(twists)} Keep the original idea visible, but change the silhouette enough that it has a new tiny destiny.`,
+        shapes: pick(shapeCombos),
+        mood: pick(moods)[0],
+        lesson: "Redrawing is where style grows teeth. Change one big decision, not twenty tiny ones.",
+        reflection: "What changed most: shape, mood, or story?",
+        status: "Re-Scribbled",
+        drawn: false,
+        rescribbled: true,
+        savedAt: today(),
+        date: today()
+      };
+      relics.unshift(evolved);
+      writeRelics();
+      showSection("play");
+      renderPrompt(evolved);
+      toast("Re-Scribble summoned. Same creature, new goblin weather.");
+    }
+
+    function deleteRelic(id) {
+      relics = relics.filter(item => item.id !== id);
+      writeRelics();
+      toast("Relic released into the margins.");
+    }
+
+    function renderStash() {
+      const list = $("#stashList");
+      if (!relics.length) {
+        list.innerHTML = `<div class="empty">No relics yet. Go to Play, summon a block, then press Scribble On. The Stash is hungry but polite.</div>`;
+        return;
+      }
+      list.innerHTML = relics.map(relic => `
+        <article class="stash-card">
+          <h3>${escapeHtml(relic.title)}</h3>
+          <div class="stash-meta">
+            <span class="pill">${escapeHtml(relic.mode)}</span>
+            <span class="pill">${formatDate(relic.savedAt || relic.date)}</span>
+            <span class="pill">${escapeHtml(relic.status)}</span>
+          </div>
+          <p>${escapeHtml(relic.prompt)}</p>
+          <div class="button-row" style="margin-top:14px">
+            <button class="tiny-btn" data-action="drawn" data-id="${relic.id}" type="button">StrokeDone</button>
+            <button class="tiny-btn" data-action="rescribble" data-id="${relic.id}" type="button">Re-Scribble</button>
+            <button class="tiny-btn danger" data-action="delete" data-id="${relic.id}" type="button">Delete</button>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function escapeHtml(text = "") {
+      return String(text).replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+    }
+
+    function renderNotes() {
+      $("#notesGrid").innerHTML = fieldNotes.map(([title, copy, icon]) => `
+        <article class="note-card">
+          <div class="note-icon" aria-hidden="true">${icon}</div>
+          <h3>${title}</h3>
+          <p>${copy}</p>
+        </article>
+      `).join("");
+    }
+
+    function setTheme(theme) {
+      document.body.dataset.theme = theme;
+      localStorage.setItem(THEME_KEY, theme);
+      $$(".theme-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.themeChoice === theme));
+      const colors = { light: "#FFFAF7", random: "#F0F4F8", dark: "#141115" };
+      $('meta[name="theme-color"]').setAttribute("content", colors[theme] || colors.light);
+    }
+
+    function showSection(id) {
+      $$(".section").forEach(section => section.classList.toggle("active", section.id === id));
+      $$(".nav-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.section === id));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function bindEvents() {
+      $(".mode-bar").addEventListener("click", event => {
+        const btn = event.target.closest("[data-mode]");
+        if (!btn) return;
+        activeMode = modes.find(mode => mode.id === btn.dataset.mode) || modes[0];
+        renderModes();
+        toast(`${activeMode.name} ready. The block is watching.`);
+      });
+
+      $("#generateBtn").addEventListener("click", () => renderPrompt(makePrompt()));
+      $("#savePromptBtn").addEventListener("click", () => saveCurrent(false));
+      $("#doneBtn").addEventListener("click", strokeDoneCurrent);
+      $("#breakdownBtn").addEventListener("click", () => {
+        const panel = $("#detailsPanel");
+        const open = panel.classList.toggle("open");
+        $("#breakdownBtn").textContent = open ? "Fold Block Back" : "Break Down Block";
+      });
+
+      $$(".theme-btn").forEach(btn => btn.addEventListener("click", () => setTheme(btn.dataset.themeChoice)));
+      $$(".nav-btn").forEach(btn => btn.addEventListener("click", () => showSection(btn.dataset.section)));
+
+      $("#stashList").addEventListener("click", event => {
+        const btn = event.target.closest("[data-action]");
+        if (!btn) return;
+        const { action, id } = btn.dataset;
+        if (action === "drawn") markDrawn(id);
+        if (action === "rescribble") reScribble(id);
+        if (action === "delete") deleteRelic(id);
+      });
+
+      $("#clearDrawnBtn").addEventListener("click", () => {
+        relics = relics.filter(relic => !relic.drawn);
+        writeRelics();
+        toast("Drawn relics cleared. The Stash has exhaled.");
+      });
+
+      $("#clearAllBtn").addEventListener("click", () => {
+        const okay = confirm("Empty the whole Stash? This cannot be un-goblined.");
+        if (!okay) return;
+        relics = [];
+        writeRelics();
+        toast("Stash emptied. Fresh chaos awaits.");
+      });
+    }
+
+    async function registerServiceWorker() {
+      if (!("serviceWorker" in navigator)) return;
+      try { await navigator.serviceWorker.register("service-worker.js"); }
+      catch (error) { console.info("Service worker registration skipped:", error); }
+    }
+
+    function init() {
+      renderModes();
+      renderNotes();
+      renderStash();
+      bindEvents();
+      setTheme(localStorage.getItem(THEME_KEY) || "light");
+      registerServiceWorker();
+    }
+
+    init();
+  </script>
+</body>
+</html>
